@@ -1,0 +1,80 @@
+#!/bin/bash
+
+# Configuração inicial
+TARGET_DIR=${1:-""}  # Diretório alvo (passado como argumento ou vazio)
+DATE=$(date +%Y-%m-%d)
+BACKUP_DIR="backup_$DATE"
+REPORT_FILE="relatorio_$DATE.txt"
+
+# Função para obter o diretório interativamente se $1 não foi passado
+function get_directory_interactive() {
+    while [[ -z "$TARGET_DIR" || ! -d "$TARGET_DIR" ]]; do
+        read -p "Digite o caminho de um diretório válido: " TARGET_DIR
+    done
+}
+
+# Verificar diretório
+if [[ -z "$TARGET_DIR" ]]; then
+    get_directory_interactive
+fi
+if [[ ! -d "$TARGET_DIR" ]]; then
+    echo "Erro: O diretório $TARGET_DIR não existe."
+    exit 1
+fi
+
+# Organização dos arquivos
+SMALL_DIR="$TARGET_DIR/small_files"
+MEDIUM_DIR="$TARGET_DIR/medium_files"
+LARGE_DIR="$TARGET_DIR/large_files"
+mkdir -p "$SMALL_DIR" "$MEDIUM_DIR" "$LARGE_DIR"
+
+echo "Organizando arquivos..."
+for FILE in "$TARGET_DIR"/*; do
+    if [[ -f "$FILE" ]]; then
+        FILE_SIZE=$(stat -c%s "$FILE")
+        if [[ $FILE_SIZE -le 102400 ]]; then
+            mv "$FILE" "$SMALL_DIR"
+        elif [[ $FILE_SIZE -le 1048576 ]]; then
+            mv "$FILE" "$MEDIUM_DIR"
+        else
+            mv "$FILE" "$LARGE_DIR"
+        fi
+    fi
+done
+
+# Backup
+echo "Criando backup em $BACKUP_DIR..."
+mkdir -p "$BACKUP_DIR"
+cp -r "$SMALL_DIR" "$MEDIUM_DIR" "$LARGE_DIR" "$BACKUP_DIR"
+
+# Gerar relatório
+echo "Gerando relatório..."
+TOTAL_FILES=$(find "$TARGET_DIR" -type f | wc -l)
+SMALL_COUNT=$(find "$SMALL_DIR" -type f | wc -l)
+MEDIUM_COUNT=$(find "$MEDIUM_DIR" -type f | wc -l)
+LARGE_COUNT=$(find "$LARGE_DIR" -type f | wc -l)
+LARGEST_FILE=$(find "$TARGET_DIR" -type f -exec du -h {} + | sort -rh | head -n 1 | awk '{print $2}')
+AVERAGE_SIZE=$(find "$TARGET_DIR" -type f -exec du -b {} + | awk '{sum+=$1; count++} END {if(count>0) print sum/count; else print 0}')
+
+# Previsão do tempo
+WEATHER=$(curl -s "https://wttr.in/?format=3")
+
+# Salvar relatório
+cat <<EOF > "$REPORT_FILE"
+Relatório de Organização - $DATE
+==================================
+- Diretório alvo: $TARGET_DIR
+- Número total de ficheiros: $TOTAL_FILES
+- Número de ficheiros pequenos: $SMALL_COUNT
+- Número de ficheiros médios: $MEDIUM_COUNT
+- Número de ficheiros grandes: $LARGE_COUNT
+- Maior ficheiro: $LARGEST_FILE
+- Tamanho médio dos ficheiros: $AVERAGE_SIZE bytes
+- Previsão do tempo: $WEATHER
+==================================
+EOF
+
+# Exibir relatório no terminal
+cat "$REPORT_FILE"
+
+echo "Script concluído. Relatório salvo em $REPORT_FILE."
