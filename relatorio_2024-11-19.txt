@@ -1,0 +1,11 @@
+Relatório de Organização - 2024-11-19
+==================================
+- Diretório alvo: test_dir
+- Número total de ficheiros: 3
+- Número de ficheiros pequenos: 1
+- Número de ficheiros médios: 1
+- Número de ficheiros grandes: 1
+- Maior ficheiro: test_dir/large_files/large1.txt
+- Tamanho médio dos ficheiros: 767321 bytes
+- Previsão do tempo: Cascais, Portugal: ⛅️  +14°C
+==================================
